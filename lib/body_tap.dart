@@ -5676,16 +5676,15 @@ class _PathCapturePainter extends RPSCustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
-
 class BodyPainter extends CustomPainter {
   final Set<int> selected;
   BodyPainter(this.selected);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw black background
+    // Draw white background
     final backgroundPaint = Paint()
-      ..color = Colors.black
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
@@ -5693,11 +5692,16 @@ class BodyPainter extends CustomPainter {
     );
 
     final defaultPaint = Paint()
-      ..color = Colors.white
+      ..color = const Color(0xFFF0F0F0)
       ..style = PaintingStyle.fill;
     final selectedPaint = Paint()
       ..color = const Color(0xFFCA0000)
       ..style = PaintingStyle.fill;
+
+    final strokePaint = Paint()
+      ..color = const Color(0xFF2A2A2A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
 
     final allPaths = BodyPaths.getAllPaths();
     for (int i = 0; i < allPaths.length; i++) {
@@ -5706,6 +5710,7 @@ class BodyPainter extends CustomPainter {
         path,
         selected.contains(i) ? selectedPaint : defaultPaint,
       );
+      canvas.drawPath(path, strokePaint);
     }
   }
 
@@ -5713,6 +5718,7 @@ class BodyPainter extends CustomPainter {
   bool shouldRepaint(covariant BodyPainter old) =>
       !setEquals(old.selected, selected);
 }
+
 
 class BodyWidget extends StatefulWidget {
   const BodyWidget({super.key});
