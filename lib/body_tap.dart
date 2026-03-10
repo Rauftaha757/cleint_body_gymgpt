@@ -5676,23 +5676,15 @@ class _PathCapturePainter extends RPSCustomPainter {
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
+
 class BodyPainter extends CustomPainter {
   final Set<int> selected;
   BodyPainter(this.selected);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Draw white background
-    final backgroundPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      backgroundPaint,
-    );
-
     final defaultPaint = Paint()
-      ..color = const Color(0xFFF0F0F0)
+      ..color = Colors.white
       ..style = PaintingStyle.fill;
     final selectedPaint = Paint()
       ..color = const Color(0xFFCA0000)
@@ -5719,35 +5711,89 @@ class BodyPainter extends CustomPainter {
       !setEquals(old.selected, selected);
 }
 
-
 class BodyWidget extends StatefulWidget {
-  const BodyWidget({super.key});
+  final void Function(int index, String muscleGroup)? onMuscleTapped;
+
+  const BodyWidget({super.key, this.onMuscleTapped});
+
   @override
   State<BodyWidget> createState() => _BodyWidgetState();
 }
 
 class _BodyWidgetState extends State<BodyWidget> {
   final Set<int> _selected = {};
+  String? _lastTappedMuscle;
+
+  // 🔑 Map each path index to a muscle group name
+  static const Map<int, String> _muscleNames = {
+    0: 'chest',
+    1: 'left_shoulder',
+    2: 'right_shoulder',
+    3: 'abs',
+    4: 'left_bicep',
+    5: 'right_bicep',
+    6: 'left_forearm',
+    7: 'right_forearm',
+    8: 'left_quad',
+    9: 'right_quad',
+    10: 'left_calf',
+    11: 'right_calf',
+    // Add more as needed based on your BodyPaths indices
+  };
+
+  void _handleTap(TapDownDetails details) {
+    final box = context.findRenderObject() as RenderBox;
+    final local = box.globalToLocal(details.globalPosition);
+    final tappedIndex = BodyPaths.hitTest(local, box.size);
+
+    if (tappedIndex != null) {
+      setState(() {
+        _selected.contains(tappedIndex)
+            ? _selected.remove(tappedIndex)
+            : _selected.add(tappedIndex);
+
+        // Update last tapped muscle
+        _lastTappedMuscle = _muscleNames[tappedIndex] ?? 'muscle_$tappedIndex';
+      });
+
+      // 🔑 Fire callback with index + name
+      final muscleName = _muscleNames[tappedIndex] ?? 'muscle_$tappedIndex';
+      widget.onMuscleTapped?.call(tappedIndex, muscleName);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (details) {
-        final box = context.findRenderObject() as RenderBox;
-        final local = box.globalToLocal(details.globalPosition);
-        final tappedIndex = BodyPaths.hitTest(local, box.size);
-        if (tappedIndex != null) {
-          setState(() {
-            _selected.contains(tappedIndex)
-                ? _selected.remove(tappedIndex)
-                : _selected.add(tappedIndex);
-          });
-        }
-      },
-      child: CustomPaint(
-        painter: BodyPainter(Set<int>.from(_selected)),
-        size: const Size(271, 506.97),
-      ),
+    return Stack(
+      children: [
+        GestureDetector(
+          onTapDown: _handleTap,
+          child: CustomPaint(
+            painter: BodyPainter(Set<int>.from(_selected)),
+            size: const Size(271, 506.97),
+          ),
+        ),
+        if (_lastTappedMuscle != null)
+          Positioned(
+            top: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'Tapped: $_lastTappedMuscle',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
